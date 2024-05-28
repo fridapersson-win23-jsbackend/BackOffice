@@ -1,0 +1,94 @@
+﻿@page "/users"
+@using BackOffice.Data
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Users</PageTitle>
+
+<h1>Users</h1>
+
+<AuthorizeView Roles="Admin, SuperAdmin">
+    <Authorized>
+        <section class="">
+            <div class="container">
+                @if (users == null)
+                {
+                    <p><em>Loading...</em></p>
+                }
+                else
+                {
+                    @* <a href="/users/createuser" class="btn-theme">Create User</a> *@
+                    foreach (var user in users)
+                    {
+                        <a href="@($"users/{user.Id}")">@user.FirstName @user.LastName</a>
+                    }
+                }
+            </div>
+        </section>
+    </Authorized>
+
+    <NotAuthorized>
+        <p>You are not authorized to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private ApplicationUser[]? users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            var roles = user.Claims.Where(c => c.Type == "role").Select(c => c.Value);
+            Console.WriteLine($"User is in role Admin: {roles.Contains("Admin")}");
+        }
+        else
+        {
+            Console.WriteLine("User is not authenticated");
+        }
+
+
+        users = await Http.GetFromJsonAsync<ApplicationUser[]>("https://userprovider-silicon-fp.azurewebsites.net/api/getusers?code=jMkZOxLSKeIyUtv4jWB4SAkflJcdfRx-yxTG-rWo9S-8AzFu6SjT9A==");
+    }
+
+    public class ApplicationUser
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public object Biography { get; set; }
+        public string ProfilePicture { get; set; }
+        public object AddressId { get; set; }
+        public object Address { get; set; }
+        public object SavedCourses { get; set; }
+        public string Id { get; set; }
+        public string Email { get; set; }
+    }
+
+    private async Task DeleteUser(string userId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"https://userprovider-silicon-fp.azurewebsites.net/api/deleteuser/{userId}?code=YOUR_FUNCTION_KEY");
+            if (response.IsSuccessStatusCode)
+            {
+                users = users.Where(u => u.Id != userId).ToArray();
+            }
+            else
+            {
+                Console.WriteLine($"Failed to delete user: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception occurred: {ex.Message}");
+        }
+    }
+}

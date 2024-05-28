@@ -1,0 +1,72 @@
+﻿@page "/users/{userId}"
+@using BackOffice.Data
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+
+
+
+
+
+<section class="user-details">
+    <div class="container">
+        <div class="user-info">
+            <h3>@user.FirstName @user.LastName</h3>
+            <h5>@user.Email</h5>
+        </div>
+    </div>
+</section>
+<AuthorizeView Roles="Admin, SuperAdmin">
+    <Authorized>
+        <button @onclick="() => DeleteUser(user.Id)" class="btn-theme">Delete</button>
+        <button class="btn-theme" @onclick="NavigateToEdit">Edit</button>
+    </Authorized>
+</AuthorizeView>
+
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private ApplicationUser user { get; set; } = new();
+
+    private async Task DeleteUser(string userId)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"https://userprovider-silicon-fp.azurewebsites.net/api/deleteuser/{UserId}?code=zIYAI1HZfq3j2OK_Aw04ZRLyAaRN56Jao2r4YcHVv5f6AzFu2uPbSw==");
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo("/users");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            user = await Http.GetFromJsonAsync<ApplicationUser>($"https://userprovider-silicon-fp.azurewebsites.net/api/getuser/{UserId}?code=eRf7DIdz7ftL1iL8xJyjTvGp8Sc5qM_rWwqdy8Ww-L4AAzFuIgrOJg==");
+        
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception occurred while fetching user: {ex.Message}");
+        }
+    }
+
+    private void NavigateToEdit()
+    {
+        NavigationManager.NavigateTo($"/users/edit/{UserId}");
+    }
+}

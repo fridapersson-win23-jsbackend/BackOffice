@@ -1,0 +1,102 @@
+﻿@page "/users/edit/{userId}"
+@using BackOffice.Data
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h3>Edit User Details</h3>
+<AuthorizeView Roles="Admin, SuperAdmin">
+    <Authorized>
+        <EditForm Model="@editUserForm" OnValidSubmit="UpdateUserReq" Context="EditFormContext">
+            <DataAnnotationsValidator />
+            
+
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <InputText id="firstName" @bind-Value="editUserForm.FirstName" class="form-control" />
+                <ValidationMessage For="() => editUserForm.FirstName" />
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <InputText id="lastName" @bind-Value="editUserForm.LastName" class="form-control" />
+                <ValidationMessage For="() => editUserForm.LastName" />
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" @bind-Value="editUserForm.Email" class="form-control" />
+                <ValidationMessage For="() => editUserForm.Email" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Update</button>
+        </EditForm>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private EditUserForm editUserForm { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUser();
+    }
+
+    private async Task LoadUser()
+    {
+        try
+        {
+            var user = await Http.GetFromJsonAsync<ApplicationUser>($"https://userprovider-silicon-fp.azurewebsites.net/api/getuser/{UserId}?code=eRf7DIdz7ftL1iL8xJyjTvGp8Sc5qM_rWwqdy8Ww-L4AAzFuIgrOJg==");
+            if (user != null)
+            {
+                editUserForm = new EditUserForm
+                    {
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Email = user.Email
+                    };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception occurred while fetching user: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateUserReq()
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"https://userprovider-silicon-fp.azurewebsites.net/api/updateuser/{UserId}?code=cVXm6jJrElUzfvqt4j5SGnSfo3ONKQiAdhIUmm6lT_jLAzFuhGO0xg==", editUserForm);
+            if (response.IsSuccessStatusCode)
+            {
+                NavigationManager.NavigateTo($"/users/{UserId}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to update user: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception occurred while updating user: {ex.Message}");
+        }
+    }
+
+    private class EditUserForm
+    {
+        [Required(ErrorMessage = "First Name is required")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Last Name is required")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address")]
+        public string Email { get; set; } = string.Empty;
+    }
+}

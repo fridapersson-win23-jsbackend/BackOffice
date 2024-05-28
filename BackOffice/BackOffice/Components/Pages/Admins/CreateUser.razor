@@ -1,0 +1,207 @@
+﻿@page "/admins/createuser"
+@using System.ComponentModel.DataAnnotations
+@using BackOffice.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+
+@attribute [Authorize(Roles = "Admin")]
+
+<h3>CreateUser backoffice</h3>
+
+<section class="backoffice-create-user">
+    <div class="container">
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert alert-success">
+                @StatusMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                @ErrorMessage
+            </div>
+        }
+
+        <div class="create-user">
+            <EditForm FormName="SignUpForm" Model="createUserForm" OnValidSubmit="RegisterUser" method="post" novalidate asp-route-returnUrl="@ReturnUrl">
+                <DataAnnotationsValidator />
+
+
+                @if (!string.IsNullOrEmpty(ErrorMessage?.ToString()))
+                {
+                    <div class="alerts alert-danger">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <div class="name-info">
+                    <div class="first-name">
+                        <label for="signupFirstName">Firstname</label>
+                        <InputText @bind-Value="createUserForm.FirstName" class="form-input" placeholder="Enter your first name" id="signupFirstName" />
+                        <ValidationMessage For="() => createUserForm.FirstName" />
+                    </div>
+                    <div class="last-name">
+                        <label for="signupLastName">Lastname</label>
+                        <InputText @bind-Value="createUserForm.LastName" class="form-input" placeholder="Enter your last name" id="signupLastName" />
+                        <ValidationMessage For="() => createUserForm.LastName" />
+                    </div>
+                </div>
+                <div class="email">
+                    <label for="signUpEmail">Email</label>
+                <InputText @bind-Value="createUserForm.Email" class="form-input" type="email" placeholder="Enter your email address" id="signUpEmail" />
+                <ValidationMessage For="() => createUserForm.Email" />
+                </div>
+                <div class="password">
+                    <label for="signUpPassword">Password</label>
+                <InputText @bind-Value="createUserForm.Password" class="form-input" type="password" placeholder="********" id="signUpPassword" />
+                <ValidationMessage For="() => createUserForm.Password" />
+                </div>
+                <div class="confirm-password">
+                    <label for="signUpConfirmPassword">Confirm password</label>
+                <InputText @bind-Value="createUserForm.ConfirmPassword" class="form-input" type="password" placeholder="********" id="signUpConfirmPassword" />
+                <ValidationMessage For="() => createUserForm.ConfirmPassword" />
+                </div>
+                @* <div class="terms-and-conditions">
+                <InputCheckbox @bind-Value="createUserForm.TermsAndConditions" class="checkbox" id="signUpTerms" />
+                    <label for="signUpTerms">I agree to the <a href="/about/terms">Terms</a> & <a href="/about/conditions">Conditions</a>.</label>
+                <ValidationMessage For="() => createUserForm.TermsAndConditions" />
+                </div> *@
+                <div class="role">
+                    <label for="createUserForm.Role">Role</label>
+                    <InputSelect @bind-Value="createUserForm.Role">
+                        <option value="User">User</option>
+                        <option value="Admin">Admin</option>
+                        <option value="SuperAdmin">Super Admin</option>
+                    </InputSelect>
+                    <ValidationMessage For="() => createUserForm.Role" />
+
+                </div>
+
+                <div class="sign-up">
+                    <button class="btn-theme" type="submit">Create User</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</section>
+
+@code {
+    private string? StatusMessage { get; set; }
+    private string? ErrorMessage { get; set; }
+    [SupplyParameterFromForm]
+    private CreateUserForm createUserForm { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+
+
+    private async Task RegisterUser(EditContext editContext)
+    {
+        try
+        {
+            var existingUser = await UserManager.Users.AnyAsync(x => x.Email == createUserForm.Email);
+
+            if (existingUser)
+            {
+                ErrorMessage = "A user with the same email already exists";
+                return;
+            }
+
+            var user = new ApplicationUser
+            {
+                FirstName = createUserForm.FirstName,
+                LastName = createUserForm.LastName,
+                UserName = createUserForm.Email,
+                Email = createUserForm.Email
+            };
+
+
+            var result = await UserManager.CreateAsync(user, createUserForm.Password);
+            if (!result.Succeeded)
+            {
+                ErrorMessage = "Unable to register account, try again";
+                return;
+            };
+
+            if (!await RoleManager.RoleExistsAsync(createUserForm.Role))
+            {
+                var roleResult = await RoleManager.CreateAsync(new IdentityRole(createUserForm.Role));
+
+                if (!roleResult.Succeeded)
+                {
+                    ErrorMessage = "Couldn't create role";
+                    return;
+                }
+            }
+            var addRoleToResult = await UserManager.AddToRoleAsync(user, createUserForm.Role);
+            if (!addRoleToResult.Succeeded)
+            {
+                ErrorMessage = "Couldn't add user to role";
+                return;
+            }
+
+            StatusMessage = "Created Successfully!";
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+
+
+    private class CreateUserForm
+    {
+        [Display(Name = "First name", Prompt = "Enter your first name")]
+        [Required(ErrorMessage = "Invalid first name")]
+        [DataType(DataType.Text)]
+        [MinLength(2, ErrorMessage = "First name is to short")]
+        public string FirstName { get; set; } = null!;
+
+
+
+        [Display(Name = "Last name", Prompt = "Enter your last name")]
+        [Required(ErrorMessage = "Invalid last name")]
+        [DataType(DataType.Text)]
+        [MinLength(2, ErrorMessage = "Last name is too short")]
+        public string LastName { get; set; } = null!;
+
+
+
+        [Display(Name = "Email", Prompt = "Enter your email address")]
+        [Required(ErrorMessage = "Invalid email")]
+        [RegularExpression("^[^@\\s]+@[^@\\s]+\\.[^@\\s]{2,}$", ErrorMessage = "Invalid email address")]
+        [DataType(DataType.EmailAddress)]
+        public string Email { get; set; } = null!;
+
+
+
+        [Display(Name = "Password", Prompt = "Enter Password")]
+        [Required(ErrorMessage = "Invalid password")]
+        [RegularExpression("^(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()-+=])[A-Za-z\\d!@#$%^&*()-+=]{8,}$", ErrorMessage = "Invalid password")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = null!;
+
+
+
+        [Display(Name = "Confirm password", Prompt = "Enter password")]
+        [Required(ErrorMessage = "Invalid password")]
+        [DataType(DataType.Password)]
+        [Compare(nameof(Password), ErrorMessage = "Password doesn't match")]
+        public string ConfirmPassword { get; set; } = null!;
+
+        [Required]
+        public string Role { get; set; } = null!;
+
+        // [Display(Name = "Terms & Conditions")]
+        // [RequiredCheckbox(ErrorMessage = "You must accept the terms & conditions")]
+        // public bool TermsAndConditions { get; set; }
+    }
+}

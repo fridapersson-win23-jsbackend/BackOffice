@@ -1,0 +1,227 @@
+﻿@* @page "/courses/create"
+@using BackOffice.Models.GraphQL.Mutations
+@inject HttpClient Http
+@rendermode InteractiveServer
+
+<h3>CreateCourse</h3>
+
+<div class="container">
+    <div class="create-course">
+        <EditForm Model="Input" FormName="create-course" OnValidSubmit="CreateNewCourse" method="post" novalidate class="create-course-form">
+            <DataAnnotationsValidator />
+
+            <div class="course-info">
+                <div class="create-course-div">
+                    <label for="createCourseTitle">Title</label>
+                    <InputText @bind-Value="Input.Title" class="form-control" id="createCourseTitle" />
+                    <ValidationMessage For="() => Input.Title" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseIngress">Ingress</label>
+                    <InputText @bind-Value="Input.Ingress" class="form-control" id="createCourseIngress" />
+                    <ValidationMessage For="() => Input.Ingress" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseReview">Numbers of Reviews</label>
+                    <InputText @bind-Value="Input.Reviews" class="form-control" id="createCourseReview" />
+                    <ValidationMessage For="() => Input.Reviews" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseImageUri">ImageUri</label>
+                    <InputText @bind-Value="Input.ImageUri" class="form-control" id="createCourseImageUri" />
+                    <ValidationMessage For="() => Input.ImageUri" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseImageHeaderUri">ImageHeaderUri</label>
+                    <InputText @bind-Value="Input.ImageHeaderUri" class="form-control" id="createCourseImageHeaderUri" />
+                    <ValidationMessage For="() => Input.ImageHeaderUri" />
+                </div>
+
+
+
+                <div class="create-course-div">
+                    <label for="createCourseStarRating">StarRating</label>
+                    <InputNumber @bind-Value="Input.StarRating" class="form-control" id="createCourseStarRating" />
+                    <ValidationMessage For="() => Input.StarRating" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseLikesInNumber">LikesInNumber</label>
+                    <InputNumber @bind-Value="Input.LikesInNumber" class="form-control" id="createCourseLikesInNumber" />
+                    <ValidationMessage For="() => Input.LikesInNumber" />
+                </div>
+
+                <div class="email create-course-div">
+                    <label for="createCourseLikesInPercent">LikesInPercent</label>
+                    <InputNumber @bind-Value="Input.LikesInPercent" class="form-control" id="createCourseLikesInPercent" />
+                    <ValidationMessage For="() => Input.LikesInPercent" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseHoursToComplete">HoursToComplete</label>
+                    <InputNumber @bind-Value="Input.HoursToComplete" class="form-control" id="createCourseHoursToComplete" />
+                    <ValidationMessage For="() => Input.HoursToComplete" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="createCourseIsDigital">Is Digital</label>
+                    <InputCheckbox @bind-Value="Input.IsDigital" id="createCourseIsDigital" />
+                    <ValidationMessage For="() => Input.IsDigital" />
+
+                    <label for="createCourseIsBestSeller">Is BestSeller</label>
+                    <InputCheckbox @bind-Value="Input.IsBestSeller" id="createCourseIsBestSeller" />
+                    <ValidationMessage For="() => Input.IsBestSeller" />
+                </div>
+            </div>
+
+
+            <div class="author-info">
+
+                    <div class="create-course-div">
+                        <label for="authorName">Author Name</label>
+                    <InputText @bind-Value="Input.AuthorName" class="form-control" id="authorName" />
+                    <ValidationMessage For="() => Input.AuthorName" />
+                    </div>
+
+            </div>
+
+            <div class="price-info">
+                <div class="create-course-div">
+                    <label for="price">Price</label>
+                    <InputNumber id="price" @bind-Value="Input.Prices!.Price" class="form-control" />
+                    <ValidationMessage For="() => Input.Prices.Price" />
+                </div>
+                <div class="create-course-div">
+                    <label for="discount-price">Discounted Price</label>
+                    <InputNumber id="discount-price" @bind-Value="Input.Prices!.DiscountedPrice" class="form-control" />
+                    <ValidationMessage For="() => Input.Prices.DiscountedPrice" />
+                </div>
+                <div class="create-course-div">
+                    <label for="currency">Currency</label>
+                    <InputText id="currency" @bind-Value="Input.Prices!.Currency" class="form-control" />
+                    <ValidationMessage For="() => Input.Prices.Currency" />
+                </div>
+            </div>
+   <button class="btn-theme" type="submit">Submit</button>
+
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private CourseModel Input { get; set; } = new();
+
+    // private void AddAuthor()
+    // {
+    //     CreateCourseForm.Authors!.Add(new());
+    //     StateHasChanged();
+    // }
+
+    private async Task CreateNewCourse()
+    {
+        try
+        {
+            var query = new GraphQLCreateCourse
+            {
+                Query = @"mutation createCourse($input: CourseCreateRequestInput!) {
+                          createCourse(input: $input) {
+                            id
+                            title
+                          }
+                        }",
+                        Variables = new
+                        {
+                            input = Input
+                        }
+            };
+
+            var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", query);
+
+            if(response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("SUCCESS");
+            }
+            else
+            {
+                Console.WriteLine("FAIL");
+            }
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+
+
+    public class CourseModel
+    {
+        // public string Id { get; set; } = null!;
+        public string? Title { get; set; }
+        public string? Ingress { get; set; }
+        public string? Reviews { get; set; }
+        public string? ImageUri { get; set; }
+        public string? ImageHeaderUri { get; set; }
+        public string[]? Categories { get; set; }
+        public decimal? StarRating { get; set; }
+        public decimal? LikesInNumber { get; set; }
+        public decimal? LikesInPercent { get; set; }
+        public decimal? HoursToComplete { get; set; }
+        public bool IsDigital { get; set; }
+        public bool IsBestSeller { get; set; }
+
+        public string? AuthorName { get; set; }
+        public virtual Prices? Prices { get; set; } = new();
+        // public virtual List<Authors>? Authors { get; set; } = new();
+        public virtual Content? Content { get; set; } = new();
+
+        //public virtual List<Categories>? Categories { get; set; }
+    }
+
+    //public class Categories
+    //{
+    //    public int Id { get; set; }
+    //    public string? CategoryName { get; set; }
+    //}
+
+    public class Authors
+    {
+        public string? AuthorName { get; set; }
+
+        //public int Id { get; set; }
+        //public string? AuthorTitle { get; set; }
+        //    public string? AuthorImageUrl { get; set; }
+        //    public string? AuthorDescription { get; set; }
+        //    public decimal? YoutubeSubs { get; set; }
+        //    public decimal? FacebookSubs { get; set; }
+    }
+
+    public class Prices
+    {
+        public decimal Price { get; set; }
+        public decimal DiscountedPrice { get; set; }
+        public string? Currency { get; set; }
+    }
+
+    public class Content
+    {
+        public string? Description { get; set; }
+        public string[]? Includes { get; set; }
+        public virtual List<ProgramDetails>? ProgramDetails { get; set; }
+        public string[]? LearnPoints { get; set; }
+    }
+
+    public class ProgramDetails
+    {
+        // public int Id { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+    }
+}
+
+ *@
