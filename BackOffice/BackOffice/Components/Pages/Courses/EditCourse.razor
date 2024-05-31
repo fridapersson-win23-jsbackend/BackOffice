@@ -1,0 +1,316 @@
+﻿@page "/courses/edit/{courseId}"
+@using BackOffice.Models.Courses
+@using BackOffice.Models.GraphQL.Mutations.Update
+@using BlazorApp.Models.GraphQL
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Edit Course</h3>
+
+@if (course != null)
+{
+    <EditForm Model="course" FormName="update" OnValidSubmit="UpdateCourse" method="post" novalidate>
+        <DataAnnotationsValidator />
+
+        <div class="form-group">
+            <label for="title">Title</label>
+            <InputText id="title" class="form-control" @bind-Value="course.Title" />
+            <ValidationMessage For="() => course.Title" />
+        </div>
+
+        <div class="form-group">
+            <label for="ingress">Ingress</label>
+            <InputText id="ingress" class="form-control" @bind-Value="course.Ingress" />
+            <ValidationMessage For="() => course.Ingress" />
+        </div>
+
+        <div class="form-group">
+            <label for="reviews">Reviews</label>
+            <InputText id="reviews" class="form-control" @bind-Value="course.Reviews" />
+            <ValidationMessage For="() => course.Reviews" />
+        </div>
+
+        <div class="form-group">
+            <label for="imageUri">Course Image Uri</label>
+            <InputText id="imageUri" class="form-control" @bind-Value="course.ImageUri" />
+            <ValidationMessage For="() => course.ImageUri" />
+        </div>
+
+        <div class="form-group">
+            <label for="imageHeaderUri">Image Header Uri</label>
+            <InputText id="imageHeaderUri" class="form-control" @bind-Value="course.ImageHeaderUri" />
+            <ValidationMessage For="() => course.ImageHeaderUri" />
+        </div>
+
+        <div class="form-group">
+            <label for="starRating">Star rating</label>
+            <InputNumber id="starRating" class="form-control" @bind-Value="course.StarRating" />
+            <ValidationMessage For="() => course.StarRating" />
+        </div>
+
+        <div class="form-group">
+            <label for="likesInPercent">Likes in %</label>
+            <InputNumber id="likesInPercent" class="form-control" @bind-Value="course.LikesInPercent" />
+            <ValidationMessage For="() => course.LikesInPercent" />
+        </div>
+
+        <div class="form-group">
+            <label for="likesInNumber">Likes in Number</label>
+            <InputNumber id="likesInNumber" class="form-control" @bind-Value="course.LikesInNumber" />
+            <ValidationMessage For="() => course.LikesInNumber" />
+        </div>
+
+        <div class="form-group">
+            <label for="isBestSeller">Is Bestseller</label>
+            <InputCheckbox id="isBestSeller" @bind-Value="course.IsBestSeller" />
+            <ValidationMessage For="() => course.IsBestSeller" />
+        </div>
+
+        <div class="form-group">
+            <label for="isDigital">Is Digital</label>
+            <InputCheckbox id="isDigital" @bind-Value="course.IsDigital" />
+            <ValidationMessage For="() => course.IsDigital" />
+        </div>
+
+        <h5>Author</h5>
+        <div class="form-group">
+            <label for="authorName">Author Name</label>
+            <InputText id="authorName" class="form-control" @bind-Value="course.Author.AuthorName" />
+            <ValidationMessage For="() => course.Author.AuthorName" />
+        </div>
+
+        <h5>Prices</h5>
+        <div class="form-group">
+            <label for="price">Price</label>
+            <InputNumber id="price" class="form-control" @bind-Value="course.Prices.Price" />
+            <ValidationMessage For="() => course.Prices.Price" />
+        </div>
+
+        <div class="form-group">
+            <label for="discountedPrice">Discounted Price</label>
+            <InputNumber id="discountedPrice" class="form-control" @bind-Value="course.Prices.DiscountedPrice" />
+            <ValidationMessage For="() => course.Prices.DiscountedPrice" />
+        </div>
+
+        <div class="form-group">
+            <label for="currency">Currency</label>
+            <InputText id="currency" class="form-control" @bind-Value="course.Prices.Currency" />
+            <ValidationMessage For="() => course.Prices.Currency" />
+        </div>
+
+        <h5>Content</h5>
+        <div class="form-group">
+            <label for="description">Description</label>
+            <InputText id="description" class="form-control" @bind-Value="course.Content.Description" />
+            <ValidationMessage For="() => course.Content.Description" />
+        </div>
+
+        <div class="form-group">
+            <label for="includes">Includes</label>
+            <InputText id="includes" class="form-control" @bind-Value="course.Content.Includes" />
+            <ValidationMessage For="() => course.Content.Includes" />
+        </div>
+
+        <div class="form-group">
+            <label for="learnPoints">Learn Points</label>
+            <InputText id="learnPoints" class="form-control" @bind-Value="course.Content.LearnPoints" />
+            <ValidationMessage For="() => course.Content.LearnPoints" />
+        </div>
+
+        <div class="form-group">
+            <label for="programDetails">Program Details</label>
+            <InputText id="programDetails" class="form-control" @bind-Value="course.Content.ProgramDetails" />
+            <ValidationMessage For="() => course.Content.ProgramDetails" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Course</button>
+    </EditForm>
+}
+else
+{
+    <p>Loading...</p>
+}
+
+@code {
+    [Parameter]
+    public string? courseId { get; set; }
+
+    private UpdateCourseModel? course { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCourse();
+    }
+
+    private async Task LoadCourse()
+    {
+        var query = new GraphQLQuery
+            {
+                Query = @"
+            query getCourseById($id: String!) {
+                getCourseById(id: $id) {
+                    id
+                    title
+                    ingress
+                    reviews
+                    imageUri
+                    imageHeaderUri
+                    categories
+                    starRating
+                    likesInPercent
+                    likesInNumber
+                    hoursToComplete
+                    isBestSeller
+                    isDigital
+                    authors {
+                        authorName
+                    }
+                    prices {
+                        price
+                        discountedPrice
+                        currency
+                    }
+                    content {
+                        description
+                        includes
+                        learnPoints
+                        programDetails {
+                            id
+                            title
+                            description
+                        }
+                    }
+                }
+            }",
+                Variables = new { id = courseId }
+            };
+
+        var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", query);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<DynamicGraphQLResponse>();
+            var courseData = result?.Data.GetProperty("getCourseById");
+
+            if (courseData.HasValue)
+            {
+                var courseElement = courseData.Value;
+
+                course = new UpdateCourseModel
+                    {
+                        Id = courseElement.GetProperty("id").GetString(),
+                        Title = courseElement.GetProperty("title").GetString(),
+                        Ingress = courseElement.GetProperty("ingress").GetString(),
+                        Reviews = courseElement.GetProperty("reviews").GetString(),
+                        Categories = string.Join(",", courseElement.GetProperty("categories").EnumerateArray().Select(c => c.GetString())),
+                        ImageUri = courseElement.GetProperty("imageUri").GetString(),
+                        ImageHeaderUri = courseElement.GetProperty("imageHeaderUri").GetString(),
+                        StarRating = courseElement.GetProperty("starRating").GetDecimal(),
+                        LikesInNumber = courseElement.GetProperty("likesInNumber").GetDecimal(),
+                        LikesInPercent = courseElement.GetProperty("likesInPercent").GetDecimal(),
+                        HoursToComplete = courseElement.GetProperty("hoursToComplete").GetDecimal(),
+                        IsDigital = courseElement.GetProperty("isDigital").GetBoolean(),
+                        IsBestSeller = courseElement.GetProperty("isBestSeller").GetBoolean(),
+                        Prices = new UpdatePriceModel
+                        {
+                            Price = courseElement.GetProperty("prices").GetProperty("price").GetDecimal(),
+                            DiscountedPrice = courseElement.GetProperty("prices").GetProperty("discountedPrice").GetDecimal(),
+                            Currency = courseElement.GetProperty("prices").GetProperty("currency").GetString()
+                        },
+                        Author = new UpdateAuthorModel
+                        {
+                            AuthorName = courseElement.GetProperty("authors")[0].GetProperty("authorName").GetString()
+                        },
+                        Content = new UpdateContentModel
+                        {
+                            Description = courseElement.GetProperty("content").GetProperty("description").GetString(),
+                            Includes = string.Join(",", courseElement.GetProperty("content").GetProperty("includes").EnumerateArray().Select(i => i.GetString())),
+                            LearnPoints = string.Join(",", courseElement.GetProperty("content").GetProperty("learnPoints").EnumerateArray().Select(lp => lp.GetString())),
+                            ProgramDetails = string.Join(",", courseElement.GetProperty("content").GetProperty("programDetails").EnumerateArray().Select(pd => pd.GetProperty("title").GetString() + ": " + pd.GetProperty("description").GetString()))
+                        }
+                    };
+            }
+        }
+        else
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Error fetching course data: {errorContent}");
+        }
+    }
+
+    private async Task UpdateCourse()
+    {
+        try
+        {
+            var updateCourseQuery = new GraphQLQuery
+                {
+                    Query = @"
+                mutation updateCourse($input: CourseUpdateRequestInput!) {
+                    updateCourse(input: $input) {
+                        id
+                        title
+                    }
+                }",
+                    Variables = new { input = course }
+                };
+
+            var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", updateCourseQuery);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/courses/allcourses");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error updating course: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    public class UpdateCourseModel
+    {
+        public string Id { get; set; } = null!;
+        public string? Title { get; set; }
+        public string? Ingress { get; set; }
+        public string? Reviews { get; set; }
+        public string? Categories { get; set; }
+        public string? ImageUri { get; set; }
+        public string? ImageHeaderUri { get; set; }
+        public decimal StarRating { get; set; }
+        public decimal LikesInNumber { get; set; }
+        public decimal LikesInPercent { get; set; }
+        public decimal HoursToComplete { get; set; }
+        public bool IsDigital { get; set; }
+        public bool IsBestSeller { get; set; }
+
+        public UpdatePriceModel Prices { get; set; } = new();
+        public UpdateAuthorModel Author { get; set; } = new();
+        public UpdateContentModel Content { get; set; } = new();
+    }
+
+    public class UpdateAuthorModel
+    {
+        public string? AuthorName { get; set; }
+    }
+
+    public class UpdatePriceModel
+    {
+        public decimal Price { get; set; }
+        public decimal DiscountedPrice { get; set; }
+        public string? Currency { get; set; }
+    }
+
+    public class UpdateContentModel
+    {
+        public string? Description { get; set; }
+        public string? Includes { get; set; }
+        public string? LearnPoints { get; set; }
+        public string? ProgramDetails { get; set; }
+    }
+}

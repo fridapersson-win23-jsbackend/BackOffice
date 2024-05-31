@@ -5,95 +5,90 @@
 @inject HttpClient Http
 @inject UserService UserService
 
-<h3>GetAllCourses</h3>
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <h3>GetAllCourses</h3>
 
-@if (courses != null)
-{
-    <div class="box-content">
-        <div>
-            <a href="/courses/create" class="btn-theme">Create New Course</a>
-        </div>
-        <div class="boxes" id="boxes">
-            @foreach (var course in courses)
-            {
-                <div class="box">
-                    @if (course.IsBestSeller)
-                    {
-                        <span class="best-seller text-s">Best Seller</span>
-                    }
-
-@*                     <button class="bookmark" type="submit" @onclick="() => HandleBookmark(course.Id!)" title="@(course.IsSaved ? "Remove" : "Add")">
-                        <i class="@(course.IsSaved ? "fa-solid fa-bookmark" : "fa-regular fa-bookmark")"></i>
-                    </button> *@
-
-                    @* <a class="bookmark" @onclick:stopPropagation="@true" >
-            <i class="fa-sharp fa-regular fa-bookmark" title="Bookmark Course"></i>
-            </a> *@
-
-                    <div class="content">
-                        <a href="/courses/@course.Id" asp-route-id="@course.Id">
-                            <img src="@course.ImageUri" />
-                            <p class="h5">@course.Title</p>
-
-                            <p class="text-s">By @course.Author</p>
-                            <div class="extra-price">
-                                @if (course.DiscountedPrice == 0)
-                                {
-                                    <p class="price">$@course.Price</p>
-                                }
-                                else
-                                {
-                                    <p class="new-price">$@course.DiscountedPrice</p>
-                                    <span class="old-price">$@course.Price</span>
-                                }
-                            </div>
-
-                            <div class="line"></div>
-
-                            <div class="bottom-info">
-                                <div class="hours">
-                                    <i class="fa-light fa-clock"></i>
-                                    <p>@course.HoursToComplete hours</p>
-                                </div>
-                                <div class="likes">
-                                    <i class="fa-light fa-thumbs-up"></i>
-                                    <p>
-                                        @($"{course.LikesInPercent}%")
-                                        (@($"{course.LikesInNumber}K"))
-
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="edit-course">
-                                <a href="/courses/editcourse/@course.Id" class="btn-theme-s">Edit course</a>
-                                <a href="/courses/viewcourse/@course.Id" class="btn-theme-s">View</a>
-                                <a href="/courses/deletecourse" class="delete-btn">Delete</a>
-                            </div>
-                        </a>
-                    </div>
+        @if (courses != null)
+        {
+            <div class="box-content">
+                <div>
+                    <a href="/courses/create" class="btn-theme">Create New Course</a>
                 </div>
-            }
-        </div>
-    </div>
-}
-else
-{
-    <p><em>Loading...</em></p>
-}
+                <div class="boxes" id="boxes">
+                    @foreach (var course in courses)
+                    {
+                        <div class="box">
+                            @if (course.IsBestSeller)
+                            {
+                                <span class="best-seller text-s">Best Seller</span>
+                            }
 
+                            <div class="content">
+                                <a href="/courses/details/@course.Id">
+                                    <img src="@course.ImageUri" />
+                                    <p class="h5">@course.Title</p>
 
+                                    <p class="text-s">By @course.Author</p>
+                                    <div class="extra-price">
+                                        @if (course.DiscountedPrice == 0)
+                                        {
+                                            <p class="price">$@course.Price</p>
+                                        }
+                                        else
+                                        {
+                                            <p class="new-price">$@course.DiscountedPrice</p>
+                                            <span class="old-price">$@course.Price</span>
+                                        }
+                                    </div>
+
+                                    <div class="line"></div>
+
+                                    <div class="bottom-info">
+                                        <div class="hours">
+                                            <i class="fa-light fa-clock"></i>
+                                            <p>@course.HoursToComplete hours</p>
+                                        </div>
+                                        <div class="likes">
+                                            <i class="fa-light fa-thumbs-up"></i>
+                                            <p>
+                                                @($"{course.LikesInPercent}%")
+                                                (@($"{course.LikesInNumber}K"))
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="edit-course">
+                                        <a href="/courses/edit/@course.Id" class="btn-theme-s">Edit course</a>
+                                        <a href="/courses/details/@course.Id" class="btn-theme-s">View</a>
+                                        <a href="/courses/delete/@course.Id" class="delete-btn">Delete</a>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <p><em>Loading...</em></p>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>You are not allowed access</p>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private List<CourseCardModel>? courses;
 
-
     protected override async Task OnInitializedAsync()
     {
         var query = new GraphQLQuery
-        {
-            Query = "{getCourses { id isBestSeller title imageUri authors {authorName} prices {price discountedPrice } hoursToComplete likesInNumber likesInPercent  }}"
-        };
-                                                    //lägg i appsettings.json
+            {
+                Query = "{getCourses { id isBestSeller title imageUri authors { authorName } prices { price discountedPrice } hoursToComplete likesInNumber likesInPercent }}"
+            };
+
         var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", query);
 
         var responseContent = await response.Content.ReadAsStringAsync();
@@ -102,7 +97,7 @@ else
         {
             var result = await response.Content.ReadFromJsonAsync<DynamicGraphQLResponse>();
             courses = result?.Data.GetProperty("getCourses").EnumerateArray()
-            .Where(course => !string.IsNullOrEmpty(course.GetProperty("id").GetString()))
+                .Where(course => !string.IsNullOrEmpty(course.GetProperty("id").GetString()))
                 .Select(course => new CourseCardModel
                     {
                         Id = course.GetProperty("id").GetString(),
@@ -117,28 +112,16 @@ else
                         LikesInPercent = course.GetProperty("likesInPercent").GetDecimal(),
                         // IsSaved = course.GetProperty("isSaved").GetBoolean()
                     }).ToList();
-
-
-            // var user = await UserService.GetClaimsAsync();
-            // var getSavedCourses = await UserService.GetAllSavedCourses(user);
-            // if (getSavedCourses != null)
-            // {
-            //     // foreach (var course in courses!)
-            //     // {
-            //     //     course.IsSaved = getSavedCourses.Any(x => x.CourseId == course.Id);
-            //     // }
-            // }
         }
     }
-
 
     private async Task DeleteCourse(string courseId)
     {
         try
         {
-
+            
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }

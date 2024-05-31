@@ -6,15 +6,20 @@
 <PageTitle>Courses</PageTitle>
 
 
-
+<AuthorizeView Roles="Admin">
+    <Authorized>
+        <a href="/courses/allcourses" class="btn-theme">All Courses</a>
+        <a href="/courses/updatecourse" class="btn-theme">Update Course</a>
+        <a href="/courses/delete" class="btn-theme">Delete Course</a>
+    </Authorized>
+</AuthorizeView>
 <h1>Courses</h1>
 
 
 @* <a href="/courses/create" class="btn-theme">Create Course</a> *@
-<a href="/courses/allcourses" class="btn-theme">See All Courses</a>
+
 @* <a href="/courses/courses/{id}" class="btn-theme">Get Courses</a> *@
-<a href="/courses/updatecourse" class="btn-theme">Update Course</a>
-<a href="/courses/delete" class="btn-theme">Delete Course</a>
+
 
 
 @* @if (courses == null)

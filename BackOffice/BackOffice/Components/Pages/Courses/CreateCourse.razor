@@ -1,8 +1,9 @@
-﻿@* @page "/courses/create"
+﻿@page "/courses/create"
 @using BackOffice.Models.GraphQL.Mutations
 @inject HttpClient Http
 @rendermode InteractiveServer
 
+<PageTitle>Create new course</PageTitle>
 <h3>CreateCourse</h3>
 
 <div class="container">
@@ -24,6 +25,12 @@
                 </div>
 
                 <div class="create-course-div">
+                    <label for="categoryName">Category Name <span class="category-seperation">(if more than one category use , to separate)</span></label>
+                    <InputText @bind-Value="CategoryName" class="form-control" id="categoryName" />
+                    <ValidationMessage For="() => CategoryName" />
+                </div>
+
+                <div class="create-course-div">
                     <label for="createCourseReview">Numbers of Reviews</label>
                     <InputText @bind-Value="Input.Reviews" class="form-control" id="createCourseReview" />
                     <ValidationMessage For="() => Input.Reviews" />
@@ -40,8 +47,6 @@
                     <InputText @bind-Value="Input.ImageHeaderUri" class="form-control" id="createCourseImageHeaderUri" />
                     <ValidationMessage For="() => Input.ImageHeaderUri" />
                 </div>
-
-
 
                 <div class="create-course-div">
                     <label for="createCourseStarRating">StarRating</label>
@@ -78,17 +83,16 @@
                 </div>
             </div>
 
-
+            <h3>Author</h3>
             <div class="author-info">
-
-                    <div class="create-course-div">
-                        <label for="authorName">Author Name</label>
-                    <InputText @bind-Value="Input.AuthorName" class="form-control" id="authorName" />
-                    <ValidationMessage For="() => Input.AuthorName" />
-                    </div>
-
+                <div class="create-course-div">
+                    <label for="authorName">Author Name <span class="author-seperation">(if more than one author user , to separate)</span></label>
+                    <InputText @bind-Value="AuthorName" class="form-control" id="authorName" />
+                    <ValidationMessage For="() => AuthorName" />
+                </div>
             </div>
 
+            <h3>Price</h3>
             <div class="price-info">
                 <div class="create-course-div">
                     <label for="price">Price</label>
@@ -106,122 +110,180 @@
                     <ValidationMessage For="() => Input.Prices.Currency" />
                 </div>
             </div>
-   <button class="btn-theme" type="submit">Submit</button>
 
+            <h3>Content</h3>
+            <div class="content-info">
+                <div class="create-course-div">
+                    <label for="contentDescription">Description</label>
+                    <InputText id="contentDescription" @bind-Value="Input.Content.Description" class="form-control" />
+                    <ValidationMessage For="() => Input.Content.Description" />
+                </div>
+
+                <div class="create-course-div">
+                    <label for="contentIncludes">Includes <span class="content-includes-seperation">(if more than one include use , to separate)</span></label>
+                    <InputText @bind-Value="ContentIncludes" class="form-control" id="contentIncludes" />
+                    <ValidationMessage For="() => ContentIncludes" />
+                </div>
+
+                @foreach (var details in Input.Content.ProgramDetails)
+                {
+                    <div class="create-course-div">
+                        <label for="programDetailsTitle">Program Details Title</label>
+                        <InputText @bind-Value="details.Title" class="form-control" id="programDetailsTitle" />
+                        <ValidationMessage For="() => details.Title" />
+                    </div>
+
+                    <div class="create-course-div">
+                        <label for="programDetailsDescription">Program Details Description</label>
+                        <InputText @bind-Value="details.Description" class="form-control" id="programDetailsDescription" />
+                        <ValidationMessage For="() => details.Description" />
+                    </div>
+                }
+
+                <button type="button" class="btn-theme" @onclick="AddProgramDetail">Add Program Details</button>
+            </div>
+            <button class="btn-theme" type="submit">Submit</button>
         </EditForm>
+
+
+        <div class="error-message">
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <p class="alert-danger-dark">@ErrorMessage</p>
+            }
+        </div>
+        <div class="status-message">
+            @if (!string.IsNullOrEmpty(StatusMessage))
+            {
+                <p class="alert">@StatusMessage</p>
+            }
+        </div>
+
     </div>
 </div>
 
 @code {
     [SupplyParameterFromForm]
     private CourseModel Input { get; set; } = new();
+    private string? StatusMessage { get; set; }
+    private string? ErrorMessage { get; set; }
+    private string AuthorName = "";
+    private string CategoryName = "";
+    private string ContentIncludes = "";
 
-    // private void AddAuthor()
-    // {
-    //     CreateCourseForm.Authors!.Add(new());
-    //     StateHasChanged();
-    // }
+
+    private void AddProgramDetail()
+    {
+        Input.Content.ProgramDetails.Add(new ProgramDetails());
+    }
 
     private async Task CreateNewCourse()
     {
         try
         {
-            var query = new GraphQLCreateCourse
-            {
-                Query = @"mutation createCourse($input: CourseCreateRequestInput!) {
+            Input.Authors = AuthorName.Split(",").Select(x => new Authors { AuthorName = x.Trim() }).ToList();
+            Input.Categories = CategoryName.Split(',').Select(x => x.Trim()).ToArray();
+            Input.Content.Includes = ContentIncludes.Split(',').Select(x => x.Trim()).ToArray();
+
+            var mutationQuery = new GraphQLCreateCourse
+                {
+                    Query = @"mutation createCourse($input: CourseCreateRequestInput!) {
                           createCourse(input: $input) {
-                            id
                             title
+                            ingress
+                            reviews
+                            imageUri
+                            imageHeaderUri
+                            categories
+                            starRating
+                            likesInNumber
+                            likesInPercent
+                            hoursToComplete
+                            isDigital
+                            isBestSeller
+                            authors {
+                                authorName
+                            }
+                            prices {
+                                price
+                                discountedPrice
+                                currency
+                            }
+                            content {
+                                description
+                                includes
+                                programDetails {
+                                    title
+                                    description
+                                }
+                            }
                           }
                         }",
-                        Variables = new
-                        {
-                            input = Input
-                        }
-            };
+                    Variables = new
+                    {
+                        input = Input
+                    }
+                };
 
-            var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", query);
-
-            if(response.IsSuccessStatusCode)
+            var response = await Http.PostAsJsonAsync("https://courseprovider-fp-silicon.azurewebsites.net/api/graphql?code=YsfIYn4-vNUORavCIYDMl9D-Tw_DBOoebyijYgS_DTdZAzFu-Oos3w==", mutationQuery);
+            if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("SUCCESS");
+                StatusMessage = "Course created successfully!";
             }
             else
             {
-                Console.WriteLine("FAIL");
+                ErrorMessage = "Course creation failed.";
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            ErrorMessage = $"An error occurred: {ex.Message}";
         }
     }
-
 
 
     public class CourseModel
     {
-        // public string Id { get; set; } = null!;
-        public string? Title { get; set; }
-        public string? Ingress { get; set; }
-        public string? Reviews { get; set; }
-        public string? ImageUri { get; set; }
-        public string? ImageHeaderUri { get; set; }
-        public string[]? Categories { get; set; }
-        public decimal? StarRating { get; set; }
-        public decimal? LikesInNumber { get; set; }
-        public decimal? LikesInPercent { get; set; }
-        public decimal? HoursToComplete { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Ingress { get; set; } = string.Empty;
+        public string Reviews { get; set; } = string.Empty;
+        public string ImageUri { get; set; } = string.Empty;
+        public string ImageHeaderUri { get; set; } = string.Empty;
+        public string[] Categories { get; set; } = Array.Empty<string>();
+        public int StarRating { get; set; }
+        public int LikesInNumber { get; set; }
+        public int LikesInPercent { get; set; }
+        public int HoursToComplete { get; set; }
         public bool IsDigital { get; set; }
         public bool IsBestSeller { get; set; }
-
-        public string? AuthorName { get; set; }
-        public virtual Prices? Prices { get; set; } = new();
-        // public virtual List<Authors>? Authors { get; set; } = new();
-        public virtual Content? Content { get; set; } = new();
-
-        //public virtual List<Categories>? Categories { get; set; }
+        public List<Authors> Authors { get; set; } = new();
+        public Prices Prices { get; set; } = new();
+        public Content Content { get; set; } = new();
     }
-
-    //public class Categories
-    //{
-    //    public int Id { get; set; }
-    //    public string? CategoryName { get; set; }
-    //}
 
     public class Authors
     {
-        public string? AuthorName { get; set; }
-
-        //public int Id { get; set; }
-        //public string? AuthorTitle { get; set; }
-        //    public string? AuthorImageUrl { get; set; }
-        //    public string? AuthorDescription { get; set; }
-        //    public decimal? YoutubeSubs { get; set; }
-        //    public decimal? FacebookSubs { get; set; }
+        public string AuthorName { get; set; } = string.Empty;
     }
 
     public class Prices
     {
-        public decimal Price { get; set; }
-        public decimal DiscountedPrice { get; set; }
-        public string? Currency { get; set; }
+        public double Price { get; set; }
+        public double DiscountedPrice { get; set; }
+        public string Currency { get; set; } = string.Empty;
     }
 
     public class Content
     {
-        public string? Description { get; set; }
-        public string[]? Includes { get; set; }
-        public virtual List<ProgramDetails>? ProgramDetails { get; set; }
-        public string[]? LearnPoints { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string[] Includes { get; set; } = Array.Empty<string>();
+        public List<ProgramDetails> ProgramDetails { get; set; } = new();
     }
 
     public class ProgramDetails
     {
-        // public int Id { get; set; }
-        public string? Title { get; set; }
-        public string? Description { get; set; }
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 }
-
- *@
